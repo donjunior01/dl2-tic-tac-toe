@@ -54,13 +54,18 @@ std::pair<int, int> AI::getMediumMove(const Board& board, CellState aiPlayer) {
         return blockMove;
     }
     
-    // 3. Take center if available
-    if (board.getCell(1, 1) == EMPTY) {
-        return {1, 1};
+    int boardSize = board.getSize();
+    int center = boardSize / 2;
+    
+    // 3. Take center if available (works for any board size)
+    if (board.getCell(center, center) == EMPTY) {
+        return {center, center};
     }
     
-    // 4. Take corners
-    std::vector<std::pair<int, int>> corners = {{0, 0}, {0, 2}, {2, 0}, {2, 2}};
+    // 4. Take corners (works for any board size)
+    std::vector<std::pair<int, int>> corners = {
+        {0, 0}, {0, boardSize-1}, {boardSize-1, 0}, {boardSize-1, boardSize-1}
+    };
     for (const auto& corner : corners) {
         if (board.getCell(corner.first, corner.second) == EMPTY) {
             return corner;
@@ -77,6 +82,19 @@ std::pair<int, int> AI::getHardMove(const Board& board, CellState aiPlayer) {
         return {-1, -1};
     }
     
+    // Limit search depth based on board size to prevent crashes
+    int boardSize = board.getSize();
+    int maxDepth;
+    if (boardSize <= 3) {
+        maxDepth = 9; // Full search for 3x3
+    } else if (boardSize == 4) {
+        maxDepth = 6; // Limited depth for 4x4
+    } else if (boardSize == 5) {
+        maxDepth = 4; // More limited for 5x5
+    } else {
+        maxDepth = 3; // Very limited for 6x6
+    }
+    
     int bestScore = INT_MIN;
     std::pair<int, int> bestMove = {-1, -1};
     
@@ -86,7 +104,7 @@ std::pair<int, int> AI::getHardMove(const Board& board, CellState aiPlayer) {
         Board tempBoard = board;
         tempBoard.makeMove(cell.first, cell.second, aiPlayer);
         
-        int score = minimax(tempBoard, 0, false, aiPlayer, humanPlayer);
+        int score = minimax(tempBoard, 0, false, aiPlayer, humanPlayer, maxDepth);
         
         if (score > bestScore) {
             bestScore = score;
@@ -97,7 +115,7 @@ std::pair<int, int> AI::getHardMove(const Board& board, CellState aiPlayer) {
     return bestMove;
 }
 
-int AI::minimax(Board board, int depth, bool isMaximizing, CellState aiPlayer, CellState humanPlayer) {
+int AI::minimax(Board board, int depth, bool isMaximizing, CellState aiPlayer, CellState humanPlayer, int maxDepth) {
     WinInfo winInfo = board.checkWin();
     
     // Terminal states
@@ -109,8 +127,8 @@ int AI::minimax(Board board, int depth, bool isMaximizing, CellState aiPlayer, C
         }
     }
     
-    if (board.isFull()) {
-        return 0; // Draw
+    if (board.isFull() || depth >= maxDepth) {
+        return 0; // Draw or depth limit reached
     }
     
     if (isMaximizing) {
@@ -120,7 +138,7 @@ int AI::minimax(Board board, int depth, bool isMaximizing, CellState aiPlayer, C
         for (const auto& cell : emptyCells) {
             Board tempBoard = board;
             tempBoard.makeMove(cell.first, cell.second, aiPlayer);
-            int score = minimax(tempBoard, depth + 1, false, aiPlayer, humanPlayer);
+            int score = minimax(tempBoard, depth + 1, false, aiPlayer, humanPlayer, maxDepth);
             maxScore = std::max(maxScore, score);
         }
         
@@ -132,7 +150,7 @@ int AI::minimax(Board board, int depth, bool isMaximizing, CellState aiPlayer, C
         for (const auto& cell : emptyCells) {
             Board tempBoard = board;
             tempBoard.makeMove(cell.first, cell.second, humanPlayer);
-            int score = minimax(tempBoard, depth + 1, true, aiPlayer, humanPlayer);
+            int score = minimax(tempBoard, depth + 1, true, aiPlayer, humanPlayer, maxDepth);
             minScore = std::min(minScore, score);
         }
         

@@ -31,7 +31,7 @@ private:
     std::pair<int, int> getHardMove(const Board& board, CellState aiPlayer);
     
     // Minimax algorithm for hard difficulty
-    int minimax(Board board, int depth, bool isMaximizing, CellState aiPlayer, CellState humanPlayer);
+    int minimax(Board board, int depth, bool isMaximizing, CellState aiPlayer, CellState humanPlayer, int maxDepth);
     
     // Helper functions
     CellState getOpponent(CellState player);
